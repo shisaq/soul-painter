@@ -2,4 +2,74 @@
 
 @theme {
   --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
+
+  --color-navy: #305066;
+  --color-pink: #db6968;
+  --color-cream: #f2e2c4;
+  --color-sky: #0ea8e3;
+  --color-pink-light: #f0b8b7;
+  --color-cream-dark: #e6d1a8;
+  --color-navy-light: #4a7a9b;
 }
+
+/* Bouncy generate button */
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  15% { transform: rotate(-6deg) scale(1.05); }
+  30% { transform: rotate(4deg) scale(1.08); }
+  45% { transform: rotate(-4deg) scale(1.05); }
+  60% { transform: rotate(2deg) scale(1.03); }
+  75% { transform: rotate(-1deg) scale(1.01); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(219, 105, 104, 0.5); }
+  100% { box-shadow: 0 0 0 10px rgba(219, 105, 104, 0); }
+}
+
+@keyframes pop-in {
+  0% { transform: scale(0.5); opacity: 0; }
+  60% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes slide-up {
+  0% { transform: translateY(16px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes bounce-dot {
+  0%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-8px); }
+}
+
+.animate-wiggle {
+  animation: wiggle 0.6s ease-in-out;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-pop-in {
+  animation: pop-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.35s ease-out forwards;
+}
+
+/* Decorative background dots */
+.bg-dots {
+  background-image: radial-gradient(circle, var(--color-cream-dark) 1.5px, transparent 1.5px);
+  background-size: 28px 28px;
+}
+
+/* Hide scrollbar utility */
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

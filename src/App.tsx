@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useDraw, DrawProps } from './hooks/useDraw';
-import { 
-  Pencil, Eraser, Undo, Redo, Trash2, Download, 
+import {
+  Pencil, Eraser, Undo, Trash2,
   Sparkles, Palette, Loader2, Type
 } from 'lucide-react';
 import { cn } from './lib/utils';
@@ -26,11 +26,11 @@ function formatCountdown(seconds: number): string {
 }
 
 const COLORS = [
-  '#000000', '#ef4444', '#f97316', '#eab308', 
-  '#22c55e', '#3b82f6', '#a855f7', '#ec4899'
+  '#305066', '#db6968', '#0ea8e3', '#f59e0b',
+  '#22c55e', '#a855f7', '#ec4899', '#000000'
 ];
 
-const BRUSH_SIZES = [2, 5, 10, 20, 30];
+const BRUSH_SIZES = [3, 8, 15];
 
 const QUICK_PROMPTS = [
   { icon: '🐶', text: '小狗', prompt: '狗' },
@@ -43,17 +43,18 @@ const QUICK_PROMPTS = [
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'word' | 'draw'>('word');
-  
+
   // -- Word Mode State --
   const [sketchPrompt, setSketchPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [thinkingText, setThinkingText] = useState<string | null>(null);
   const [hasGenerated, setHasGenerated] = useState(false);
   const wordSvgRef = useRef<SVGSVGElement>(null);
+  const generateBtnRef = useRef<HTMLButtonElement>(null);
 
   // -- Draw Mode State --
-  const [color, setColor] = useState<string>('#000000');
-  const [lineWidth, setLineWidth] = useState<number>(5);
+  const [color, setColor] = useState<string>('#305066');
+  const [lineWidth, setLineWidth] = useState<number>(8);
   const [isEraser, setIsEraser] = useState(false);
   const [isGuessing, setIsGuessing] = useState(false);
   const [guessResult, setGuessResult] = useState<string | null>(null);
@@ -129,13 +130,22 @@ export default function App() {
     a.click();
   };
 
+  const triggerWiggle = () => {
+    const btn = generateBtnRef.current;
+    if (!btn) return;
+    btn.classList.remove('animate-wiggle');
+    void btn.offsetWidth;
+    btn.classList.add('animate-wiggle');
+  };
+
   const handleGenerateSketch = async (promptOverride?: string | React.MouseEvent) => {
     const promptToUse = typeof promptOverride === 'string' ? promptOverride : sketchPrompt;
     if (!promptToUse.trim()) return;
-    
+
     setIsGenerating(true);
     setThinkingText("正在构思...");
-    
+    triggerWiggle();
+
     const svg = wordSvgRef.current;
     if (!svg) {
       setIsGenerating(false);
@@ -161,28 +171,27 @@ export default function App() {
 
       if (result.steps && Array.isArray(result.steps)) {
         setHasGenerated(true);
-        svg.innerHTML = ''; // Clear SVG completely
+        svg.innerHTML = '';
         const rc = rough.svg(svg);
 
-        // Animate drawing steps
         for (let i = 0; i < result.steps.length; i++) {
           const step = result.steps[i];
           setThinkingText(`${step.description || '...'}`);
-          
+
           let node;
           if (step.type === 'fill') {
             node = rc.path(step.path, {
               stroke: 'none',
               fill: step.color,
               fillStyle: 'solid',
-              roughness: 0.5 // Slight roughness for fills
+              roughness: 0.5
             });
           } else {
             node = rc.path(step.path, {
               stroke: step.color,
               strokeWidth: step.width || 8,
               fill: 'none',
-              roughness: 2.5, // Higher roughness for crayon stroke effect
+              roughness: 2.5,
               bowing: 1.5
             });
           }
@@ -193,31 +202,26 @@ export default function App() {
           let maxDuration = 0;
           paths.forEach(p => {
               if (p.getAttribute('fill') && p.getAttribute('fill') !== 'none') {
-                  // This is a fill path (solid)
                   p.style.opacity = '0';
-                  // Force layout
                   p.getBoundingClientRect();
                   p.style.transition = `opacity 600ms ease-in`;
                   p.style.opacity = '1';
                   maxDuration = Math.max(maxDuration, 600);
               } else {
-                  // This is a stroke path
                   try {
                     const len = p.getTotalLength();
                     p.style.strokeDasharray = `${len}`;
                     p.style.strokeDashoffset = `${len}`;
                     const duration = Math.min(Math.max(len * 2, 400), 1200);
                     p.style.transition = `stroke-dashoffset ${duration}ms ease-out`;
-                    p.getBoundingClientRect(); // trigger reflow
+                    p.getBoundingClientRect();
                     p.style.strokeDashoffset = '0';
                     maxDuration = Math.max(maxDuration, duration);
-                  } catch(e) {
-                      // Safari throws if path is hidden or not rendered
-                  }
+                  } catch(e) {}
               }
           });
-          
-          await new Promise(r => setTimeout(r, maxDuration + 100)); // Delay between steps dynamically
+
+          await new Promise(r => setTimeout(r, maxDuration + 100));
         }
 
         if (promptOverride && typeof promptOverride === 'string') {
@@ -237,10 +241,10 @@ export default function App() {
   const handleGuess = async () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    
+
     setIsGuessing(true);
     setGuessResult(null);
-    
+
     try {
       const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
       const base64Data = dataUrl.split(',')[1];
@@ -268,83 +272,108 @@ export default function App() {
   };
 
   return (
-    <div className="h-screen w-full bg-[#FFFAED] flex flex-col text-[#1D1D1F] overflow-hidden" style={{ fontFamily: "'Nunito', 'Comic Sans MS', 'Chalkboard SE', sans-serif" }}>
-      
-      {/* Dynamic Content Area (Accounts for Bottom Tab Bar) */}
-      <div className="flex-1 relative overflow-hidden mb-[80px]">
-        
+    <div className="h-screen w-full bg-[#f2e2c4] bg-dots flex flex-col text-[#305066] overflow-hidden">
+
+      {/* Floating decorative shapes */}
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <div className="absolute -top-8 -left-8 w-32 h-32 rounded-full bg-[#0ea8e3]/10 animate-float" />
+        <div className="absolute top-1/4 -right-6 w-24 h-24 rounded-full bg-[#db6968]/10 animate-float" style={{ animationDelay: '1s' }} />
+        <div className="absolute bottom-32 -left-4 w-20 h-20 rounded-full bg-[#f59e0b]/10 animate-float" style={{ animationDelay: '2s' }} />
+      </div>
+
+      {/* Content Area */}
+      <div className="flex-1 relative overflow-hidden mb-[76px] z-10">
+
         {/* ======================= */}
         {/* TAB 1: WORD MODE ("词") */}
         {/* ======================= */}
         <div className={cn(
-          "absolute inset-0 flex-col items-center pt-8 px-6 overflow-y-auto w-full max-w-4xl mx-auto",
+          "absolute inset-0 flex-col items-center pt-6 px-5 overflow-y-auto w-full max-w-md mx-auto",
           activeTab === 'word' ? "flex" : "hidden"
         )}>
-          {/* Header Title */}
-          <div className="flex items-center gap-2 font-black text-[32px] mb-8 tracking-wider text-[#FF5151] drop-shadow-sm">
-            <Sparkles size={32} className="text-[#FFB800]" />
-            <span>灵魂画师</span>
+          {/* Header */}
+          <div className="flex items-center gap-2.5 mb-5">
+            <div className="w-10 h-10 rounded-2xl bg-[#db6968] flex items-center justify-center shadow-md">
+              <Sparkles size={22} className="text-white" />
+            </div>
+            <h1 className="text-[28px] font-black tracking-wide text-[#305066]">灵魂画师</h1>
           </div>
 
-          <div className="w-full max-w-sm">
-            {/* Quick Prompts */}
-            <div className="flex flex-wrap justify-center gap-3 mb-6">
-              {QUICK_PROMPTS.map(p => (
-                <button 
-                  key={p.text} 
-                  onClick={() => handleGenerateSketch(p.prompt)} 
-                  disabled={isGenerating}
-                  className="flex items-center gap-1.5 bg-white border-2 border-[#FFE0D1] border-b-4 active:border-b-2 active:translate-y-[2px] px-4 py-2 rounded-2xl text-base transition-all whitespace-nowrap disabled:opacity-50 font-bold text-[#FF7A00]"
-                >
-                  <span className="text-xl">{p.icon}</span>
-                  <span>{p.text}</span>
-                </button>
-              ))}
-            </div>
+          {/* Quick Prompts */}
+          <div className="flex flex-wrap justify-center gap-2.5 mb-5 w-full max-w-sm">
+            {QUICK_PROMPTS.map((p, i) => (
+              <button
+                key={p.text}
+                onClick={() => handleGenerateSketch(p.prompt)}
+                disabled={isGenerating}
+                className="flex items-center gap-1.5 bg-white/80 backdrop-blur-sm border-2 border-[#305066]/15 px-3.5 py-2 rounded-full text-[15px] transition-all whitespace-nowrap disabled:opacity-40 font-bold text-[#305066] hover:bg-white hover:border-[#0ea8e3] hover:text-[#0ea8e3] active:scale-95 shadow-sm"
+                style={{ animationDelay: `${i * 60}ms` }}
+              >
+                <span className="text-lg">{p.icon}</span>
+                <span>{p.text}</span>
+              </button>
+            ))}
+          </div>
 
-            {/* Input & Generate Button */}
-            <div className="flex items-center bg-white rounded-3xl p-3 border-4 border-[#FFE0D1] focus-within:border-[#FFB800] transition-colors w-full mb-8">
+          {/* Input + Generate Button (same row) */}
+          <div className="flex items-center gap-2.5 w-full max-w-sm mb-5">
+            <div className="flex items-center bg-white/90 backdrop-blur-sm rounded-2xl p-2 border-2 border-[#305066]/15 focus-within:border-[#0ea8e3] transition-colors shadow-sm flex-1">
               <input
                 type="text"
                 value={sketchPrompt}
                 onChange={(e) => setSketchPrompt(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleGenerateSketch()}
                 placeholder="你想画什么？"
-                className="bg-transparent border-none outline-none text-xl flex-1 px-4 py-2 font-bold text-[#5C3A21] placeholder:text-[#D4BBA6]"
+                className="bg-transparent border-none outline-none text-lg flex-1 px-3 py-2 font-bold text-[#305066] placeholder:text-[#305066]/30"
               />
-              <button
-                onClick={() => handleGenerateSketch()}
-                disabled={isGenerating || !sketchPrompt.trim()}
-                className="flex items-center justify-center bg-[#FF5151] border-b-4 border-[#CC3232] active:border-b-0 active:translate-y-1 text-white w-14 h-14 rounded-2xl disabled:opacity-50 transition-all shadow-md"
-                title="生成画作"
-              >
-                {isGenerating ? <Loader2 size={24} className="animate-spin" /> : <Sparkles size={24} />}
-              </button>
             </div>
+            <button
+              ref={generateBtnRef}
+              onClick={() => handleGenerateSketch()}
+              disabled={isGenerating || !sketchPrompt.trim()}
+              className={cn(
+                "relative flex items-center justify-center w-14 h-14 rounded-2xl text-white transition-all shadow-lg shrink-0",
+                "disabled:opacity-40 disabled:shadow-none disabled:cursor-not-allowed",
+                "active:scale-90",
+                isGenerating
+                  ? "bg-[#305066]"
+                  : "bg-[#db6968] hover:bg-[#c95756] shadow-[#db6968]/30"
+              )}
+            >
+              {/* Pulse ring when idle & has text */}
+              {!isGenerating && sketchPrompt.trim() && (
+                <span className="absolute inset-0 rounded-2xl animate-[pulse-ring_2s_ease-out_infinite] pointer-events-none" />
+              )}
+              {isGenerating ? <Loader2 size={24} className="animate-spin" /> : <Sparkles size={24} />}
+            </button>
           </div>
 
-          {/* Result Box */}
-          <div className="w-full max-w-[360px] aspect-square bg-white border-4 border-[#FFE0D1] rounded-[40px] shadow-lg relative flex items-center justify-center shrink-0">
-            <svg 
-              ref={wordSvgRef} 
-              viewBox="0 0 500 500" 
-              className={cn("w-full h-full p-4 rounded-[40px] absolute inset-0 z-10", !hasGenerated && 'opacity-0')} 
+          {/* Result Canvas */}
+          <div className="w-full max-w-[340px] aspect-square bg-white/90 backdrop-blur-sm border-2 border-[#305066]/15 rounded-3xl shadow-lg relative flex items-center justify-center shrink-0 mb-6">
+            <svg
+              ref={wordSvgRef}
+              viewBox="0 0 500 500"
+              className={cn("w-full h-full p-3 rounded-3xl absolute inset-0 z-10", !hasGenerated && 'opacity-0')}
             />
-            
+
             {/* Empty State */}
             {!hasGenerated && !isGenerating && !thinkingText && (
-              <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center text-[#D4BBA6] p-6 text-center">
-                <Palette size={56} className="mb-4 text-[#FFE0D1]" />
-                <p className="text-2xl font-black mb-2 text-[#5C3A21]">你想看什么？</p>
-                <p className="text-base font-bold">输入描述或点击上方小图标，<br/>让 AI 画给你看 ✨</p>
+              <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-6 text-center">
+                <Palette size={48} className="mb-3 text-[#0ea8e3]/30" />
+                <p className="text-xl font-black text-[#305066] mb-1">画布在这里</p>
+                <p className="text-sm font-bold text-[#305066]/40">输入描述或点击上方图标</p>
               </div>
             )}
 
             {/* Thinking Overlay */}
             {thinkingText && (
-              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 bg-white/95 px-6 py-3 rounded-full shadow-lg border-2 border-[#FFE0D1] flex items-center gap-3 animate-in fade-in zoom-in duration-300">
-                <div className="w-3 h-3 bg-[#FFB800] rounded-full animate-bounce" />
-                <span className="text-base font-bold text-[#5C3A21] whitespace-nowrap">{thinkingText}</span>
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 bg-white/95 backdrop-blur-sm px-5 py-2.5 rounded-full shadow-md border border-[#305066]/10 flex items-center gap-2.5 animate-slide-up">
+                <span className="flex gap-1">
+                  <span className="w-2 h-2 bg-[#0ea8e3] rounded-full animate-[bounce-dot_1.2s_ease-in-out_infinite]" />
+                  <span className="w-2 h-2 bg-[#db6968] rounded-full animate-[bounce-dot_1.2s_ease-in-out_0.2s_infinite]" />
+                  <span className="w-2 h-2 bg-[#f59e0b] rounded-full animate-[bounce-dot_1.2s_ease-in-out_0.4s_infinite]" />
+                </span>
+                <span className="text-sm font-bold text-[#305066] whitespace-nowrap">{thinkingText}</span>
               </div>
             )}
           </div>
@@ -354,53 +383,54 @@ export default function App() {
         {/* TAB 2: DRAW MODE ("画") */}
         {/* ======================= */}
         <div className={cn(
-          "absolute inset-0 flex-col items-center pt-6 px-4 overflow-y-auto w-full max-w-md mx-auto pb-24",
+          "absolute inset-0 flex-col items-center pt-5 px-4 overflow-y-auto w-full max-w-md mx-auto pb-24",
           activeTab === 'draw' ? "flex" : "hidden"
         )}>
-          {/* Top Actions */}
-          <div className="w-full flex items-center justify-between mb-4 px-2">
-            <div className="font-black text-[22px] text-[#FF5151]">画猜图</div>
-            <button 
+          {/* Top Bar */}
+          <div className="w-full flex items-center justify-between mb-3 px-1">
+            <h2 className="font-black text-xl text-[#305066]">画猜图</h2>
+            <button
               onClick={handleGuess}
               disabled={isGuessing || !canUndo}
               className={cn(
-                "flex items-center gap-2 px-5 py-2.5 rounded-2xl text-[15px] font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed border-b-4 active:border-b-0 active:translate-y-1 shadow-sm",
+                "flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all",
+                "disabled:opacity-40 disabled:cursor-not-allowed active:scale-95",
                 canUndo && !isGuessing
-                  ? "bg-[#FFB800] border-[#CC9300] text-white"
-                  : "bg-white border-[#FFE0D1] text-[#D4BBA6]"
+                  ? "bg-[#0ea8e3] text-white shadow-md shadow-[#0ea8e3]/25 hover:bg-[#0c96cc]"
+                  : "bg-white/60 text-[#305066]/30 border border-[#305066]/10"
               )}
             >
-              {isGuessing ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
+              {isGuessing ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
               <span>{isGuessing ? "AI 在看..." : "让 AI 猜"}</span>
             </button>
           </div>
 
           {/* Drawing Canvas */}
-          <div ref={containerRef} className="w-full aspect-square bg-white rounded-[40px] shadow-lg border-4 border-[#FFE0D1] relative overflow-hidden shrink-0">
-            
+          <div ref={containerRef} className="w-full aspect-square bg-white/90 backdrop-blur-sm rounded-3xl shadow-lg border-2 border-[#305066]/15 relative overflow-hidden shrink-0">
+
             {/* Draw Mode Empty State */}
             {!canUndo && !guessResult && (
-              <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center text-[#D4BBA6] opacity-80 z-0">
-                <Pencil size={56} className="mb-4 text-[#FFE0D1]" />
-                <p className="text-2xl font-black mb-2 text-[#5C3A21]">拿起画笔吧</p>
-                <p className="text-base font-bold">画完后点击右上角的按钮</p>
+              <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center opacity-80 z-0">
+                <Pencil size={48} className="mb-3 text-[#0ea8e3]/25" />
+                <p className="text-xl font-black text-[#305066] mb-1">拿起画笔吧</p>
+                <p className="text-sm font-bold text-[#305066]/35">画完后点右上角让 AI 猜</p>
               </div>
             )}
 
-            {/* AI Guess Result Box */}
+            {/* AI Guess Result */}
             {guessResult && (
-              <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 bg-white/95 px-5 py-4 rounded-3xl shadow-xl border-4 border-[#FFE0D1] animate-in fade-in slide-in-from-top-4 w-[90%] max-w-xs">
-                <div className="flex items-start gap-3">
-                  <div className="bg-[#FFF0ED] text-[#FF5151] p-2 rounded-2xl flex-shrink-0">
-                    <Sparkles size={20} />
+              <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 bg-white/95 backdrop-blur-sm px-4 py-3 rounded-2xl shadow-lg border border-[#305066]/10 animate-pop-in w-[90%] max-w-xs">
+                <div className="flex items-start gap-2.5">
+                  <div className="bg-[#0ea8e3]/10 text-[#0ea8e3] p-1.5 rounded-xl flex-shrink-0">
+                    <Sparkles size={18} />
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-black text-sm mb-1 text-[#FF5151]">AI 猜你说：</h4>
-                    <p className="text-sm font-bold text-[#5C3A21] leading-relaxed">{guessResult}</p>
+                    <h4 className="font-black text-xs mb-0.5 text-[#0ea8e3]">AI 猜你画的是：</h4>
+                    <p className="text-sm font-bold text-[#305066] leading-relaxed">{guessResult}</p>
                   </div>
-                  <button 
+                  <button
                     onClick={() => setGuessResult(null)}
-                    className="ml-auto text-[#D4BBA6] hover:text-[#FF7A00] flex-shrink-0 -mt-1 -mr-1 p-1"
+                    className="text-[#305066]/30 hover:text-[#db6968] flex-shrink-0 -mt-0.5 -mr-0.5 p-1 text-lg leading-none"
                   >
                     &times;
                   </button>
@@ -419,47 +449,51 @@ export default function App() {
             />
           </div>
 
-          {/* Unified Toolbar */}
-          <div className="w-full mt-6 bg-white rounded-[32px] border-4 border-[#FFE0D1] p-4 shadow-lg flex flex-col gap-4">
+          {/* Toolbar */}
+          <div className="w-full mt-4 bg-white/90 backdrop-blur-sm rounded-2xl border border-[#305066]/10 p-3.5 shadow-md flex flex-col gap-3">
             {/* Colors */}
-            <div className="flex items-center justify-between gap-3 overflow-x-auto hide-scrollbar pb-2 pt-1">
+            <div className="flex items-center justify-between gap-2 overflow-x-auto hide-scrollbar">
               {COLORS.map((c) => (
                 <button
                   key={c}
                   onClick={() => { setColor(c); setIsEraser(false); }}
                   className={cn(
-                    "w-8 h-8 rounded-full border-2 transition-transform flex-shrink-0 shadow-sm",
-                    color === c && !isEraser ? "border-white outline outline-4 outline-[#FFB800] scale-110" : "border-white hover:scale-110"
+                    "w-8 h-8 rounded-full transition-all flex-shrink-0 active:scale-90",
+                    color === c && !isEraser
+                      ? "ring-3 ring-offset-2 ring-[#305066]/40 scale-110"
+                      : "hover:scale-110"
                   )}
                   style={{ backgroundColor: c }}
                 />
               ))}
             </div>
-            
-            <div className="w-full h-1 rounded-full bg-[#FFE0D1]" />
-            
+
+            <div className="w-full h-px bg-[#305066]/8" />
+
             {/* Tools & Sizes */}
-            <div className="flex items-center justify-between pt-1">
-              <div className="flex gap-2">
-                <ToolButton icon={<Pencil size={20} />} active={!isEraser} onClick={() => setIsEraser(false)} />
-                <ToolButton icon={<Eraser size={20} />} active={isEraser} onClick={() => setIsEraser(true)} />
-                <ActionButton icon={<Undo size={20} />} onClick={undo} disabled={!canUndo} />
-                <ActionButton icon={<Trash2 size={20} />} onClick={clear} />
+            <div className="flex items-center justify-between">
+              <div className="flex gap-1.5">
+                <ToolButton icon={<Pencil size={18} />} active={!isEraser} onClick={() => setIsEraser(false)} />
+                <ToolButton icon={<Eraser size={18} />} active={isEraser} onClick={() => setIsEraser(true)} />
+                <ActionButton icon={<Undo size={18} />} onClick={undo} disabled={!canUndo} />
+                <ActionButton icon={<Trash2 size={18} />} onClick={clear} />
               </div>
-              
-              <div className="w-1 h-8 rounded-full bg-[#FFE0D1]" />
-              
-              <div className="flex gap-2">
-                {[3, 8, 15].map((size) => (
+
+              <div className="w-px h-7 bg-[#305066]/8" />
+
+              <div className="flex gap-1.5">
+                {BRUSH_SIZES.map((size) => (
                   <button
                     key={size}
                     onClick={() => setLineWidth(size)}
                     className={cn(
-                      "w-10 h-10 flex items-center justify-center rounded-2xl transition-all flex-shrink-0 border-b-2 active:border-b-0 active:translate-y-[2px]",
-                      lineWidth === size ? "bg-[#FFF0ED] border-[#FF5151]" : "bg-white border-[#FFE0D1] hover:bg-[#FFFFA5]"
+                      "w-9 h-9 flex items-center justify-center rounded-xl transition-all flex-shrink-0 active:scale-90",
+                      lineWidth === size
+                        ? "bg-[#0ea8e3]/10 ring-1.5 ring-[#0ea8e3]"
+                        : "bg-transparent hover:bg-[#305066]/5"
                     )}
                   >
-                    <div className="bg-[#5C3A21] rounded-full" style={{ width: size + 2, height: size + 2 }} />
+                    <div className="bg-[#305066] rounded-full" style={{ width: size + 2, height: size + 2 }} />
                   </button>
                 ))}
               </div>
@@ -470,49 +504,45 @@ export default function App() {
       </div>
 
       {/* Bottom Tab Navigation */}
-      <div className="absolute bottom-0 w-full h-[88px] bg-[#FFFFA5] border-t-4 border-[#FFD500] flex items-center justify-evenly z-50 shadow-[0_-8px_24px_rgba(255,165,0,0.15)] pb-safe rounded-t-[32px]">
-        <button 
-          onClick={() => setActiveTab('word')} 
-          className={cn(
-            "flex flex-col items-center justify-center w-28 h-20 transition-all rounded-[24px] mt-2",
-            activeTab === 'word' ? "bg-white text-[#FF5151] -translate-y-4 shadow-md border-b-4 border-[#FFE0D1]" : "text-[#D4BBA6] hover:text-[#FF7A00]"
-          )}
-        >
-          <Type size={32} strokeWidth={activeTab === 'word' ? 3 : 2.5} />
-          <span className="text-[14px] font-black mt-1">词作画</span>
-        </button>
-        <button 
-          onClick={() => setActiveTab('draw')} 
-          className={cn(
-            "flex flex-col items-center justify-center w-28 h-20 transition-all rounded-[24px] mt-2",
-            activeTab === 'draw' ? "bg-white text-[#FF5151] -translate-y-4 shadow-md border-b-4 border-[#FFE0D1]" : "text-[#D4BBA6] hover:text-[#FF7A00]"
-          )}
-        >
-          <Pencil size={32} strokeWidth={activeTab === 'draw' ? 3 : 2.5} />
-          <span className="text-[14px] font-black mt-1">画猜图</span>
-        </button>
+      <div className="fixed bottom-0 w-full z-50">
+        <div className="max-w-md mx-auto px-4 pb-[env(safe-area-inset-bottom,8px)]">
+          <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-lg border border-[#305066]/10 flex items-center justify-evenly p-1.5 mb-2">
+            <TabButton
+              active={activeTab === 'word'}
+              onClick={() => setActiveTab('word')}
+              icon={<Type size={24} strokeWidth={2.5} />}
+              label="词作画"
+            />
+            <TabButton
+              active={activeTab === 'draw'}
+              onClick={() => setActiveTab('draw')}
+              icon={<Pencil size={24} strokeWidth={2.5} />}
+              label="画猜图"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Exhausted Overlay */}
       {isExhausted && (
-        <div className="absolute inset-0 z-[100] bg-[#FFFAED]/95 flex items-center justify-center p-6">
-          <div className="bg-white rounded-[40px] border-4 border-[#FFE0D1] shadow-2xl p-8 max-w-sm w-full flex flex-col items-center text-center">
-            <div className="text-5xl mb-4">😴</div>
-            <h2 className="text-2xl font-black text-[#FF5151] mb-2">今日额度已用完</h2>
-            <p className="text-base font-bold text-[#5C3A21] mb-4">
+        <div className="fixed inset-0 z-[100] bg-[#f2e2c4]/95 backdrop-blur-sm flex items-center justify-center p-6">
+          <div className="bg-white rounded-3xl border border-[#305066]/10 shadow-2xl p-7 max-w-sm w-full flex flex-col items-center text-center animate-pop-in">
+            <div className="text-5xl mb-3">😴</div>
+            <h2 className="text-2xl font-black text-[#305066] mb-1.5">今日额度已用完</h2>
+            <p className="text-base font-bold text-[#305066]/60 mb-4">
               AI 画师累了，明天再来吧！
             </p>
-            <div className="bg-[#FFF0ED] rounded-2xl px-6 py-3 mb-6">
-              <p className="text-sm font-bold text-[#D4BBA6] mb-1">距离恢复还有</p>
-              <p className="text-3xl font-black text-[#FF5151] tracking-wider font-mono">
+            <div className="bg-[#db6968]/8 rounded-xl px-6 py-3 mb-5">
+              <p className="text-xs font-bold text-[#305066]/40 mb-1">距离恢复还有</p>
+              <p className="text-3xl font-black text-[#db6968] tracking-wider font-mono">
                 {formatCountdown(countdown)}
               </p>
             </div>
-            <div className="w-full h-1 rounded-full bg-[#FFE0D1] mb-6" />
-            <p className="text-sm font-bold text-[#5C3A21] mb-4">
+            <div className="w-full h-px bg-[#305066]/8 mb-5" />
+            <p className="text-sm font-bold text-[#305066]/60 mb-3">
               关注公众号，获取最新消息
             </p>
-            <img src={qrCode} alt="公众号二维码" className="w-48 h-48 rounded-2xl" />
+            <img src={qrCode} alt="公众号二维码" className="w-44 h-44 rounded-xl" />
           </div>
         </div>
       )}
@@ -521,14 +551,34 @@ export default function App() {
   );
 }
 
-// Subcomponents for cleaner code
-function ToolButton({ icon, active, onClick }: { icon: React.ReactNode, active: boolean, onClick: () => void }) {
+// -- Subcomponents --
+
+function TabButton({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string }) {
   return (
     <button
       onClick={onClick}
       className={cn(
-        "w-11 h-11 rounded-2xl flex items-center justify-center transition-all flex-shrink-0 border-b-2 active:border-b-0 active:translate-y-[2px]",
-        active ? "bg-[#FFF0ED] text-[#FF5151] border-[#FF5151]" : "bg-white text-[#D4BBA6] border-[#FFE0D1] hover:text-[#FF7A00]"
+        "flex flex-col items-center justify-center flex-1 py-2.5 rounded-xl transition-all",
+        active
+          ? "bg-[#305066] text-white shadow-md"
+          : "text-[#305066]/40 hover:text-[#305066]/70"
+      )}
+    >
+      {icon}
+      <span className="text-xs font-bold mt-0.5">{label}</span>
+    </button>
+  );
+}
+
+function ToolButton({ icon, active, onClick }: { icon: React.ReactNode; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "w-9 h-9 rounded-xl flex items-center justify-center transition-all flex-shrink-0 active:scale-90",
+        active
+          ? "bg-[#305066] text-white shadow-sm"
+          : "bg-transparent text-[#305066]/35 hover:text-[#305066]/60 hover:bg-[#305066]/5"
       )}
     >
       {icon}
@@ -536,12 +586,12 @@ function ToolButton({ icon, active, onClick }: { icon: React.ReactNode, active: 
   );
 }
 
-function ActionButton({ icon, onClick, disabled }: { icon: React.ReactNode, onClick: () => void, disabled?: boolean }) {
+function ActionButton({ icon, onClick, disabled }: { icon: React.ReactNode; onClick: () => void; disabled?: boolean }) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
-      className="w-11 h-11 rounded-2xl flex items-center justify-center transition-all flex-shrink-0 border-b-2 active:border-b-0 active:translate-y-[2px] bg-white text-[#D4BBA6] border-[#FFE0D1] hover:text-[#FF7A00] disabled:opacity-50 disabled:active:border-b-2 disabled:active:translate-y-0"
+      className="w-9 h-9 rounded-xl flex items-center justify-center transition-all flex-shrink-0 active:scale-90 bg-transparent text-[#305066]/35 hover:text-[#305066]/60 hover:bg-[#305066]/5 disabled:opacity-30 disabled:active:scale-100"
     >
       {icon}
     </button>
