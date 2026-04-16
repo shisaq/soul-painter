@@ -1,0 +1,6 @@
+{
+  "name": "灵魂画手 (Soul Painter)",
+  "description": "A polished drawing application with AI integration that guesses what you drew. Features a responsive canvas, tools, undo/redo, and Gemini AI analysis.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
