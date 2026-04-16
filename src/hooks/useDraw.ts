@@ -80,17 +80,17 @@ export const useDraw = (
     const handler = (e: MouseEvent | TouchEvent) => {
       if (!mouseDown) return;
       // Prevent scrolling when drawing on touch devices
-      if (e instanceof TouchEvent) {
+      if ('touches' in e) {
         e.preventDefault();
       }
-      
+
       let clientX, clientY;
-      if (e instanceof MouseEvent) {
-        clientX = e.clientX;
-        clientY = e.clientY;
-      } else {
+      if ('touches' in e) {
         clientX = e.touches[0].clientX;
         clientY = e.touches[0].clientY;
+      } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
       }
 
       const currentPoint = computePointInCanvas(clientX, clientY);
