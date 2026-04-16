@@ -1,7 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-
-const GEMINI_API_URL =
-  'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent';
+import { callGeminiWithFallback } from './_gemini';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -55,24 +53,10 @@ Prompt: "${prompt}"`,
   };
 
   try {
-    const response = await fetch(GEMINI_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-goog-api-key': apiKey,
-      },
-      body: JSON.stringify(body),
-    });
+    const { text, exhausted } = await callGeminiWithFallback(apiKey, body);
 
-    if (!response.ok) {
-      const err = await response.text();
-      return res.status(response.status).json({ error: err });
-    }
-
-    const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) {
-      return res.status(500).json({ error: 'No response from model' });
+    if (exhausted) {
+      return res.status(429).json({ error: 'exhausted' });
     }
 
     return res.status(200).json(JSON.parse(text));

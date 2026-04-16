@@ -6,6 +6,24 @@ import {
 } from 'lucide-react';
 import { cn } from './lib/utils';
 import rough from 'roughjs';
+import qrCode from './wechat-channel.jpg';
+
+// Calculate seconds until midnight Pacific Time
+function getSecondsUntilPacificMidnight(): number {
+  const now = new Date();
+  const pacific = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+  const midnight = new Date(pacific);
+  midnight.setDate(midnight.getDate() + 1);
+  midnight.setHours(0, 0, 0, 0);
+  return Math.floor((midnight.getTime() - pacific.getTime()) / 1000);
+}
+
+function formatCountdown(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
 
 const COLORS = [
   '#000000', '#ef4444', '#f97316', '#eab308', 
@@ -41,6 +59,26 @@ export default function App() {
   const [guessResult, setGuessResult] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
+
+  // -- Exhausted State --
+  const [isExhausted, setIsExhausted] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+
+  useEffect(() => {
+    if (!isExhausted) return;
+    setCountdown(getSecondsUntilPacificMidnight());
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          setIsExhausted(false);
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [isExhausted]);
 
   const draw = useCallback(({ ctx, currentPoint, prevPoint }: DrawProps) => {
     const startPoint = prevPoint ?? currentPoint;
@@ -111,10 +149,16 @@ export default function App() {
         body: JSON.stringify({ prompt: promptToUse }),
       });
 
+      if (response.status === 429) {
+        setIsExhausted(true);
+        setThinkingText(null);
+        setIsGenerating(false);
+        return;
+      }
       if (!response.ok) throw new Error('API request failed');
       const result = await response.json();
       if (result.thinking) setThinkingText(result.thinking);
-      
+
       if (result.steps && Array.isArray(result.steps)) {
         setHasGenerated(true);
         svg.innerHTML = ''; // Clear SVG completely
@@ -207,6 +251,11 @@ export default function App() {
         body: JSON.stringify({ image: base64Data }),
       });
 
+      if (response.status === 429) {
+        setIsExhausted(true);
+        setIsGuessing(false);
+        return;
+      }
       if (!response.ok) throw new Error('API request failed');
       const data = await response.json();
       setGuessResult(data.result);
@@ -443,6 +492,30 @@ export default function App() {
           <span className="text-[14px] font-black mt-1">画猜图</span>
         </button>
       </div>
+
+      {/* Exhausted Overlay */}
+      {isExhausted && (
+        <div className="absolute inset-0 z-[100] bg-[#FFFAED]/95 flex items-center justify-center p-6">
+          <div className="bg-white rounded-[40px] border-4 border-[#FFE0D1] shadow-2xl p-8 max-w-sm w-full flex flex-col items-center text-center">
+            <div className="text-5xl mb-4">😴</div>
+            <h2 className="text-2xl font-black text-[#FF5151] mb-2">今日额度已用完</h2>
+            <p className="text-base font-bold text-[#5C3A21] mb-4">
+              AI 画师累了，明天再来吧！
+            </p>
+            <div className="bg-[#FFF0ED] rounded-2xl px-6 py-3 mb-6">
+              <p className="text-sm font-bold text-[#D4BBA6] mb-1">距离恢复还有</p>
+              <p className="text-3xl font-black text-[#FF5151] tracking-wider font-mono">
+                {formatCountdown(countdown)}
+              </p>
+            </div>
+            <div className="w-full h-1 rounded-full bg-[#FFE0D1] mb-6" />
+            <p className="text-sm font-bold text-[#5C3A21] mb-4">
+              关注公众号，获取最新消息
+            </p>
+            <img src={qrCode} alt="公众号二维码" className="w-48 h-48 rounded-2xl" />
+          </div>
+        </div>
+      )}
 
     </div>
   );
