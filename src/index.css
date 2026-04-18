@@ -89,7 +89,7 @@
 .animate-marquee-right {
   animation: marquee-right 25s linear infinite;
 }
-.marquee-row:hover {
+.marquee-wrap:hover .marquee-row {
   animation-play-state: paused;
 }
 .mask-fade-x {

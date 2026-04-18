@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useDraw, DrawProps } from './hooks/useDraw';
 import {
   Pencil, Eraser, Undo, Trash2,
-  Sparkles, Palette, Loader2, Type, Share2
+  Sparkles, Palette, Loader2, Type, Share2, RefreshCw
 } from 'lucide-react';
 import { cn } from './lib/utils';
 import rough from 'roughjs';
@@ -146,7 +146,7 @@ export default function App() {
     if (!svg) return;
     setIsSharing(true);
     try {
-      const blob = await svgToPng(svg);
+      const blob = await svgToPng(svg, sketchPrompt);
       await shareImage(blob, `soul-painter-${sketchPrompt || 'art'}.png`, '灵魂画师', `看看AI画的「${sketchPrompt}」`);
     } catch (e) {
       console.error('Share failed:', e);
@@ -339,7 +339,7 @@ export default function App() {
           </div>
 
           {/* Quick Prompts Marquee */}
-          <div className="w-full mb-5 mask-fade-x overflow-hidden">
+          <div className="w-full mb-5 mask-fade-x overflow-hidden pb-1 marquee-wrap">
             <div className="flex gap-2.5 mb-2.5 w-max animate-marquee-left marquee-row">
               {[...PROMPTS_ROW1, ...PROMPTS_ROW1].map((p, i) => (
                 <button
@@ -431,16 +431,30 @@ export default function App() {
             )}
           </div>
 
-          {/* Share Button */}
+          {/* Action Buttons */}
           {hasGenerated && !isGenerating && (
-            <button
-              onClick={handleShareWord}
-              disabled={isSharing}
-              className="flex items-center gap-2 bg-[#0ea8e3] text-white px-5 py-2.5 rounded-full font-bold text-sm shadow-md shadow-[#0ea8e3]/25 active:scale-95 transition-all disabled:opacity-40 mb-6 animate-pop-in"
-            >
-              {isSharing ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />}
-              <span>分享画作</span>
-            </button>
+            <div className="flex items-center gap-3 mb-6 animate-pop-in">
+              <button
+                onClick={handleShareWord}
+                disabled={isSharing}
+                className="flex items-center gap-2 bg-[#0ea8e3] text-white px-5 py-2.5 rounded-full font-bold text-sm shadow-md shadow-[#0ea8e3]/25 active:scale-95 transition-all disabled:opacity-40"
+              >
+                {isSharing ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />}
+                <span>分享画作</span>
+              </button>
+              <button
+                onClick={() => {
+                  const svg = wordSvgRef.current;
+                  if (svg) svg.innerHTML = '';
+                  setHasGenerated(false);
+                  setSketchPrompt('');
+                }}
+                className="flex items-center gap-2 bg-white/80 text-[#305066] border-2 border-[#305066]/15 px-5 py-2.5 rounded-full font-bold text-sm active:scale-95 transition-all shadow-sm"
+              >
+                <RefreshCw size={16} />
+                <span>换一个</span>
+              </button>
+            </div>
           )}
         </div>
 
