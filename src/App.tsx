@@ -33,13 +33,30 @@ const COLORS = [
 
 const BRUSH_SIZES = [3, 8, 15];
 
-const QUICK_PROMPTS = [
+const PROMPTS_ROW1 = [
   { icon: '🐶', text: '小狗', prompt: '狗' },
   { icon: '🐱', text: '小猫', prompt: '猫' },
   { icon: '🚗', text: '汽车', prompt: '汽车' },
   { icon: '🍎', text: '苹果', prompt: '苹果' },
   { icon: '🏠', text: '房子', prompt: '房子' },
-  { icon: '🚀', text: '火箭', prompt: '火箭' }
+  { icon: '🚀', text: '火箭', prompt: '火箭' },
+  { icon: '🌻', text: '向日葵', prompt: '向日葵' },
+  { icon: '🐟', text: '小鱼', prompt: '鱼' },
+  { icon: '🎂', text: '蛋糕', prompt: '蛋糕' },
+  { icon: '⭐', text: '星星', prompt: '星星' },
+];
+
+const PROMPTS_ROW2 = [
+  { icon: '🦋', text: '蝴蝶', prompt: '蝴蝶' },
+  { icon: '🐢', text: '乌龟', prompt: '乌龟' },
+  { icon: '🌈', text: '彩虹', prompt: '彩虹' },
+  { icon: '🎈', text: '气球', prompt: '气球' },
+  { icon: '🐘', text: '大象', prompt: '大象' },
+  { icon: '🍕', text: '披萨', prompt: '披萨' },
+  { icon: '🚢', text: '轮船', prompt: '轮船' },
+  { icon: '🦁', text: '狮子', prompt: '狮子' },
+  { icon: '🎸', text: '吉他', prompt: '吉他' },
+  { icon: '🐧', text: '企鹅', prompt: '企鹅' },
 ];
 
 export default function App() {
@@ -321,20 +338,34 @@ export default function App() {
             <h1 className="text-[28px] font-black tracking-wide text-[#305066]">灵魂画师</h1>
           </div>
 
-          {/* Quick Prompts */}
-          <div className="flex flex-wrap justify-center gap-2.5 mb-5 w-full max-w-sm">
-            {QUICK_PROMPTS.map((p, i) => (
-              <button
-                key={p.text}
-                onClick={() => handleGenerateSketch(p.prompt)}
-                disabled={isGenerating}
-                className="flex items-center gap-1.5 bg-white/80 backdrop-blur-sm border-2 border-[#305066]/15 px-3.5 py-2 rounded-full text-[15px] transition-all whitespace-nowrap disabled:opacity-40 font-bold text-[#305066] hover:bg-white hover:border-[#0ea8e3] hover:text-[#0ea8e3] active:scale-95 shadow-sm"
-                style={{ animationDelay: `${i * 60}ms` }}
-              >
-                <span className="text-lg">{p.icon}</span>
-                <span>{p.text}</span>
-              </button>
-            ))}
+          {/* Quick Prompts Marquee */}
+          <div className="w-full mb-5 mask-fade-x overflow-hidden">
+            <div className="flex gap-2.5 mb-2.5 w-max animate-marquee-left marquee-row">
+              {[...PROMPTS_ROW1, ...PROMPTS_ROW1].map((p, i) => (
+                <button
+                  key={`r1-${i}`}
+                  onClick={() => handleGenerateSketch(p.prompt)}
+                  disabled={isGenerating}
+                  className="flex items-center gap-1.5 bg-white/80 backdrop-blur-sm border-2 border-[#305066]/15 px-3.5 py-2 rounded-full text-[15px] whitespace-nowrap disabled:opacity-40 font-bold text-[#305066] hover:bg-white hover:border-[#0ea8e3] hover:text-[#0ea8e3] active:scale-95 shadow-sm transition-colors"
+                >
+                  <span className="text-lg">{p.icon}</span>
+                  <span>{p.text}</span>
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2.5 w-max animate-marquee-right marquee-row">
+              {[...PROMPTS_ROW2, ...PROMPTS_ROW2].map((p, i) => (
+                <button
+                  key={`r2-${i}`}
+                  onClick={() => handleGenerateSketch(p.prompt)}
+                  disabled={isGenerating}
+                  className="flex items-center gap-1.5 bg-white/80 backdrop-blur-sm border-2 border-[#305066]/15 px-3.5 py-2 rounded-full text-[15px] whitespace-nowrap disabled:opacity-40 font-bold text-[#305066] hover:bg-white hover:border-[#0ea8e3] hover:text-[#0ea8e3] active:scale-95 shadow-sm transition-colors"
+                >
+                  <span className="text-lg">{p.icon}</span>
+                  <span>{p.text}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Input + Generate Button (same row) */}
