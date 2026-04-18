@@ -2,11 +2,12 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useDraw, DrawProps } from './hooks/useDraw';
 import {
   Pencil, Eraser, Undo, Trash2,
-  Sparkles, Palette, Loader2, Type
+  Sparkles, Palette, Loader2, Type, Share2
 } from 'lucide-react';
 import { cn } from './lib/utils';
 import rough from 'roughjs';
 import qrCode from './wechat-channel.jpg';
+import { svgToPng, canvasToPng, shareImage } from './lib/share';
 
 // Calculate seconds until midnight Pacific Time
 function getSecondsUntilPacificMidnight(): number {
@@ -60,6 +61,9 @@ export default function App() {
   const [guessResult, setGuessResult] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
+
+  // -- Share State --
+  const [isSharing, setIsSharing] = useState(false);
 
   // -- Exhausted State --
   const [isExhausted, setIsExhausted] = useState(false);
@@ -120,14 +124,32 @@ export default function App() {
     }
   }, [canvasSize, canvasRef]);
 
-  const handleDownload = () => {
+  const handleShareWord = async () => {
+    const svg = wordSvgRef.current;
+    if (!svg) return;
+    setIsSharing(true);
+    try {
+      const blob = await svgToPng(svg);
+      await shareImage(blob, `soul-painter-${sketchPrompt || 'art'}.png`, '灵魂画师', `看看AI画的「${sketchPrompt}」`);
+    } catch (e) {
+      console.error('Share failed:', e);
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  const handleShareDraw = async () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const dataUrl = canvas.toDataURL('image/png');
-    const a = document.createElement('a');
-    a.href = dataUrl;
-    a.download = 'my-drawing.png';
-    a.click();
+    setIsSharing(true);
+    try {
+      const blob = await canvasToPng(canvas);
+      await shareImage(blob, 'my-drawing.png', '灵魂画师', '看看我的灵魂画作！');
+    } catch (e) {
+      console.error('Share failed:', e);
+    } finally {
+      setIsSharing(false);
+    }
   };
 
   const triggerWiggle = () => {
@@ -377,6 +399,18 @@ export default function App() {
               </div>
             )}
           </div>
+
+          {/* Share Button */}
+          {hasGenerated && !isGenerating && (
+            <button
+              onClick={handleShareWord}
+              disabled={isSharing}
+              className="flex items-center gap-2 bg-[#0ea8e3] text-white px-5 py-2.5 rounded-full font-bold text-sm shadow-md shadow-[#0ea8e3]/25 active:scale-95 transition-all disabled:opacity-40 mb-6 animate-pop-in"
+            >
+              {isSharing ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />}
+              <span>分享画作</span>
+            </button>
+          )}
         </div>
 
         {/* ======================= */}
@@ -477,6 +511,7 @@ export default function App() {
                 <ToolButton icon={<Eraser size={18} />} active={isEraser} onClick={() => setIsEraser(true)} />
                 <ActionButton icon={<Undo size={18} />} onClick={undo} disabled={!canUndo} />
                 <ActionButton icon={<Trash2 size={18} />} onClick={clear} />
+                <ActionButton icon={<Share2 size={18} />} onClick={handleShareDraw} disabled={!canUndo || isSharing} />
               </div>
 
               <div className="w-px h-7 bg-[#305066]/8" />

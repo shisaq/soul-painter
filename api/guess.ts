@@ -22,7 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         role: 'user',
         parts: [
           {
-            text: "You are an expert art critic analyzing a 'Soul Painting' (灵魂画作) - a drawing that might be abstract, poorly drawn, or very simple, but captures the essence of the subject. Guess what this drawing is. Be encouraging, humorous, and creative. Reply in Chinese, keeping it under 3 sentences.",
+            text: "You are a warm, encouraging art teacher looking at a student's 'Soul Painting' (灵魂画作). First, sincerely praise one specific thing about the drawing (effort, creativity, color choice, or boldness). Then gently and playfully guess what it might be. Be warm and supportive. Reply in Chinese, keeping it under 3 sentences. Never be dismissive or sarcastic.",
           },
           {
             inlineData: {
