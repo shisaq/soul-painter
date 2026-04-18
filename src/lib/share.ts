@@ -90,60 +90,177 @@ function wrapText(
   return lines;
 }
 
+function roundRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number
+) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function drawShadow(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number
+) {
+  const layers = [
+    { spread: 12, color: 'rgba(48,80,102,0.06)' },
+    { spread: 6, color: 'rgba(48,80,102,0.04)' },
+    { spread: 2, color: 'rgba(48,80,102,0.02)' },
+  ];
+  for (const { spread, color } of layers) {
+    ctx.fillStyle = color;
+    roundRect(ctx, x - spread, y + spread * 0.5, w + spread * 2, h + spread, r + spread);
+    ctx.fill();
+  }
+}
+
 export async function canvasWithGuessToPng(
   sourceCanvas: HTMLCanvasElement,
   guessText: string
 ): Promise<Blob> {
-  const artSize = 1000;
-  const padding = 40;
-  const titleFontSize = 28;
-  const bodyFontSize = 30;
-  const lineHeight = 1.6;
-  const gapBetweenTitleAndBody = 12;
+  const W = 1080;
+  const pad = 56;
+  const innerW = W - pad * 2;
+  const artSize = innerW;
+  const cardRadius = 28;
+  const commentRadius = 22;
+  const commentPadX = 36;
+  const commentPadY = 32;
+  const titleFontSize = 26;
+  const bodyFontSize = 28;
+  const bodyLineHeight = 1.7;
+  const gapTitleBody = 14;
+  const gapArtComment = 28;
+  const brandH = 80;
+  const gapCommentBrand = 36;
 
   const measure = document.createElement('canvas').getContext('2d')!;
-  measure.font = `bold ${bodyFontSize}px system-ui, sans-serif`;
-  const textMaxWidth = artSize - padding * 2;
-  const bodyLines = wrapText(measure, guessText, textMaxWidth);
+  measure.font = `700 ${bodyFontSize}px system-ui, -apple-system, sans-serif`;
+  const textMaxW = innerW - commentPadX * 2;
+  const bodyLines = wrapText(measure, guessText, textMaxW);
 
-  const commentHeight =
-    padding +
+  const commentH =
+    commentPadY +
     titleFontSize +
-    gapBetweenTitleAndBody +
-    bodyLines.length * Math.round(bodyFontSize * lineHeight) +
-    padding;
+    gapTitleBody +
+    bodyLines.length * Math.round(bodyFontSize * bodyLineHeight) +
+    commentPadY;
 
-  const totalHeight = artSize + commentHeight + BRAND_HEIGHT;
+  const totalH = pad + artSize + gapArtComment + commentH + gapCommentBrand + brandH + pad;
+
   const canvas = document.createElement('canvas');
-  canvas.width = artSize;
-  canvas.height = totalHeight;
+  canvas.width = W;
+  canvas.height = totalH;
   const ctx = canvas.getContext('2d')!;
 
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, artSize, artSize);
-  ctx.drawImage(sourceCanvas, 0, 0, sourceCanvas.width, sourceCanvas.height, 0, 0, artSize, artSize);
+  const bgGrad = ctx.createLinearGradient(0, 0, W * 0.3, totalH);
+  bgGrad.addColorStop(0, '#fdf6ed');
+  bgGrad.addColorStop(0.5, '#f7ecdb');
+  bgGrad.addColorStop(1, '#f2e2c4');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, W, totalH);
 
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, artSize, artSize, commentHeight);
-
-  ctx.fillStyle = '#305066';
-  ctx.fillRect(padding, artSize, artSize - padding * 2, 1);
-
-  let y = artSize + padding;
-  ctx.fillStyle = '#0ea8e3';
-  ctx.font = `bold ${titleFontSize}px system-ui, sans-serif`;
-  ctx.textBaseline = 'top';
-  ctx.fillText('AI \u731c\u4f60\u753b\u7684\u662f\uff1a', padding, y);
-  y += titleFontSize + gapBetweenTitleAndBody;
-
-  ctx.fillStyle = '#305066';
-  ctx.font = `bold ${bodyFontSize}px system-ui, sans-serif`;
-  for (const line of bodyLines) {
-    ctx.fillText(line, padding, y);
-    y += Math.round(bodyFontSize * lineHeight);
+  const blobs: [number, number, number, string][] = [
+    [W * 0.85, totalH * 0.08, 180, 'rgba(14,168,227,0.07)'],
+    [W * 0.1, totalH * 0.75, 140, 'rgba(219,105,104,0.06)'],
+    [W * 0.7, totalH * 0.65, 100, 'rgba(14,168,227,0.05)'],
+    [W * 0.25, totalH * 0.15, 90, 'rgba(242,226,196,0.3)'],
+  ];
+  for (const [bx, by, br, bc] of blobs) {
+    const g = ctx.createRadialGradient(bx, by, 0, bx, by, br);
+    g.addColorStop(0, bc);
+    g.addColorStop(1, 'transparent');
+    ctx.fillStyle = g;
+    ctx.fillRect(bx - br, by - br, br * 2, br * 2);
   }
 
-  addBranding(ctx, artSize, totalHeight);
+  const artX = pad;
+  const artY = pad;
+  drawShadow(ctx, artX, artY, artSize, artSize, cardRadius);
+
+  ctx.save();
+  roundRect(ctx, artX, artY, artSize, artSize, cardRadius);
+  ctx.clip();
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(artX, artY, artSize, artSize);
+  ctx.drawImage(
+    sourceCanvas,
+    0, 0, sourceCanvas.width, sourceCanvas.height,
+    artX, artY, artSize, artSize
+  );
+  ctx.restore();
+
+  ctx.strokeStyle = 'rgba(48,80,102,0.08)';
+  ctx.lineWidth = 1.5;
+  roundRect(ctx, artX, artY, artSize, artSize, cardRadius);
+  ctx.stroke();
+
+  const cmtX = pad;
+  const cmtY = artY + artSize + gapArtComment;
+  drawShadow(ctx, cmtX, cmtY, innerW, commentH, commentRadius);
+
+  ctx.fillStyle = 'rgba(255,255,255,0.92)';
+  roundRect(ctx, cmtX, cmtY, innerW, commentH, commentRadius);
+  ctx.fill();
+
+  ctx.strokeStyle = 'rgba(48,80,102,0.08)';
+  ctx.lineWidth = 1.5;
+  roundRect(ctx, cmtX, cmtY, innerW, commentH, commentRadius);
+  ctx.stroke();
+
+  const accentBarW = 4;
+  const accentBarH = titleFontSize + gapTitleBody + bodyLines.length * Math.round(bodyFontSize * bodyLineHeight);
+  const accentBarX = cmtX + commentPadX - 16;
+  const accentBarY = cmtY + commentPadY;
+  const accentGrad = ctx.createLinearGradient(0, accentBarY, 0, accentBarY + accentBarH);
+  accentGrad.addColorStop(0, '#0ea8e3');
+  accentGrad.addColorStop(1, '#0e8ec3');
+  ctx.fillStyle = accentGrad;
+  roundRect(ctx, accentBarX, accentBarY, accentBarW, accentBarH, 2);
+  ctx.fill();
+
+  let ty = cmtY + commentPadY;
+  ctx.fillStyle = '#0ea8e3';
+  ctx.font = `800 ${titleFontSize}px system-ui, -apple-system, sans-serif`;
+  ctx.textBaseline = 'top';
+  ctx.fillText('\u2728 AI \u731c\u4f60\u753b\u7684\u662f\uff1a', cmtX + commentPadX, ty);
+  ty += titleFontSize + gapTitleBody;
+
+  ctx.fillStyle = '#305066';
+  ctx.font = `600 ${bodyFontSize}px system-ui, -apple-system, sans-serif`;
+  for (const line of bodyLines) {
+    ctx.fillText(line, cmtX + commentPadX, ty);
+    ty += Math.round(bodyFontSize * bodyLineHeight);
+  }
+
+  const brandCenterY = totalH - pad - brandH / 2;
+  ctx.fillStyle = '#305066';
+  ctx.font = `800 ${Math.round(W * 0.028)}px system-ui, -apple-system, sans-serif`;
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'center';
+  ctx.fillText('\u7075\u9b42\u753b\u5e08 Soul Painter', W / 2, brandCenterY - 12);
+
+  ctx.fillStyle = 'rgba(48,80,102,0.45)';
+  ctx.font = `500 ${Math.round(W * 0.022)}px system-ui, -apple-system, sans-serif`;
+  ctx.fillText('paint.uulili.com', W / 2, brandCenterY + 18);
+  ctx.textAlign = 'start';
 
   return new Promise((resolve, reject) => {
     canvas.toBlob(
