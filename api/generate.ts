@@ -1,6 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { callGeminiWithFallback } from './_gemini.js';
 
+export const config = {
+  maxDuration: 60,
+};
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -31,12 +35,12 @@ When given a prompt, generate a drawing with these principles:
 4. CHUNKY OUTLINES: Final layer should be thick dark outlines (width 10-15) that tie everything together.
 5. EXPRESSIONS: Animals and characters should have personality — a smile, curious eyes, a tilt.
 
-OUTPUT 15 to 25 steps. Fewer steps = flat and boring. More steps = rich and delightful.
+OUTPUT 10 to 15 steps. Fewer steps = flat and boring. More steps = rich and delightful.
 
 Step layering order:
-- Steps 1-5: Large fills (body, background shapes)
-- Steps 6-12: Detail fills (belly, eye whites, cheeks, inner ears)
-- Steps 13-20+: Outlines and fine details (thick outlines, pupils, mouth, whiskers)
+- Steps 1-3: Large fills (body, background shapes)
+- Steps 4-8: Detail fills (belly, eye whites, cheeks, inner ears)
+- Steps 9-15: Outlines and fine details (thick outlines, pupils, mouth, whiskers)
 
 Output a JSON object with:
 1. "thinking": Brief Chinese monologue about your drawing plan (under 15 words).
@@ -67,8 +71,17 @@ Prompt: "${prompt}"`,
       return res.status(429).json({ error: 'exhausted' });
     }
 
-    return res.status(200).json(JSON.parse(text));
+    let parsed;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      console.error('Gemini returned invalid JSON:', text.slice(0, 500));
+      return res.status(500).json({ error: 'Invalid response format' });
+    }
+
+    return res.status(200).json(parsed);
   } catch (error: any) {
+    console.error('Generate error:', error.message);
     return res.status(500).json({ error: error.message });
   }
 }
