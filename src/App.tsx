@@ -339,7 +339,7 @@ export default function App() {
           </div>
 
           {/* Quick Prompts Marquee */}
-          <div className="w-full mb-5 mask-fade-x overflow-hidden pb-1 marquee-wrap">
+          <div className="w-full mb-5 mask-fade-x overflow-x-clip marquee-wrap">
             <div className="flex gap-2.5 mb-2.5 w-max animate-marquee-left marquee-row">
               {[...PROMPTS_ROW1, ...PROMPTS_ROW1].map((p, i) => (
                 <button
