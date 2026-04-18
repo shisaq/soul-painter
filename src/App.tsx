@@ -241,18 +241,19 @@ export default function App() {
           let maxDuration = 0;
           paths.forEach(p => {
               if (p.getAttribute('fill') && p.getAttribute('fill') !== 'none') {
-                  p.style.opacity = '0';
+                  const duration = 500;
+                  p.style.clipPath = 'inset(0 100% 0 0)';
                   p.getBoundingClientRect();
-                  p.style.transition = `opacity 600ms ease-in`;
-                  p.style.opacity = '1';
-                  maxDuration = Math.max(maxDuration, 600);
+                  p.style.transition = `clip-path ${duration}ms linear`;
+                  p.style.clipPath = 'inset(0 0% 0 0)';
+                  maxDuration = Math.max(maxDuration, duration);
               } else {
                   try {
                     const len = p.getTotalLength();
                     p.style.strokeDasharray = `${len}`;
                     p.style.strokeDashoffset = `${len}`;
                     const duration = Math.min(Math.max(len * 2, 400), 1200);
-                    p.style.transition = `stroke-dashoffset ${duration}ms ease-out`;
+                    p.style.transition = `stroke-dashoffset ${duration}ms linear`;
                     p.getBoundingClientRect();
                     p.style.strokeDashoffset = '0';
                     maxDuration = Math.max(maxDuration, duration);
