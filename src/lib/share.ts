@@ -70,6 +70,89 @@ export async function svgToPng(svgElement: SVGSVGElement, promptText?: string): 
   });
 }
 
+function wrapText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number
+): string[] {
+  const lines: string[] = [];
+  let line = '';
+  for (const char of text) {
+    const test = line + char;
+    if (ctx.measureText(test).width > maxWidth && line) {
+      lines.push(line);
+      line = char;
+    } else {
+      line = test;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+export async function canvasWithGuessToPng(
+  sourceCanvas: HTMLCanvasElement,
+  guessText: string
+): Promise<Blob> {
+  const artSize = 1000;
+  const padding = 40;
+  const titleFontSize = 28;
+  const bodyFontSize = 30;
+  const lineHeight = 1.6;
+  const gapBetweenTitleAndBody = 12;
+
+  const measure = document.createElement('canvas').getContext('2d')!;
+  measure.font = `bold ${bodyFontSize}px system-ui, sans-serif`;
+  const textMaxWidth = artSize - padding * 2;
+  const bodyLines = wrapText(measure, guessText, textMaxWidth);
+
+  const commentHeight =
+    padding +
+    titleFontSize +
+    gapBetweenTitleAndBody +
+    bodyLines.length * Math.round(bodyFontSize * lineHeight) +
+    padding;
+
+  const totalHeight = artSize + commentHeight + BRAND_HEIGHT;
+  const canvas = document.createElement('canvas');
+  canvas.width = artSize;
+  canvas.height = totalHeight;
+  const ctx = canvas.getContext('2d')!;
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, artSize, artSize);
+  ctx.drawImage(sourceCanvas, 0, 0, sourceCanvas.width, sourceCanvas.height, 0, 0, artSize, artSize);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, artSize, artSize, commentHeight);
+
+  ctx.fillStyle = '#305066';
+  ctx.fillRect(padding, artSize, artSize - padding * 2, 1);
+
+  let y = artSize + padding;
+  ctx.fillStyle = '#0ea8e3';
+  ctx.font = `bold ${titleFontSize}px system-ui, sans-serif`;
+  ctx.textBaseline = 'top';
+  ctx.fillText('AI \u731c\u4f60\u753b\u7684\u662f\uff1a', padding, y);
+  y += titleFontSize + gapBetweenTitleAndBody;
+
+  ctx.fillStyle = '#305066';
+  ctx.font = `bold ${bodyFontSize}px system-ui, sans-serif`;
+  for (const line of bodyLines) {
+    ctx.fillText(line, padding, y);
+    y += Math.round(bodyFontSize * lineHeight);
+  }
+
+  addBranding(ctx, artSize, totalHeight);
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error('toBlob failed'))),
+      'image/png'
+    );
+  });
+}
+
 export async function canvasToPng(sourceCanvas: HTMLCanvasElement): Promise<Blob> {
   const w = sourceCanvas.width;
   const h = sourceCanvas.height;

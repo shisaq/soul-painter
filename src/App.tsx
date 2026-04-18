@@ -7,7 +7,7 @@ import {
 import { cn } from './lib/utils';
 import rough from 'roughjs';
 import qrCode from './wechat-channel.jpg';
-import { svgToPng, canvasToPng, shareImage } from './lib/share';
+import { svgToPng, canvasToPng, canvasWithGuessToPng, shareImage } from './lib/share';
 
 // Calculate seconds until midnight Pacific Time
 function getSecondsUntilPacificMidnight(): number {
@@ -162,6 +162,20 @@ export default function App() {
     try {
       const blob = await canvasToPng(canvas);
       await shareImage(blob, 'my-drawing.png', '灵魂画师', '看看我的灵魂画作！');
+    } catch (e) {
+      console.error('Share failed:', e);
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  const handleShareDrawWithGuess = async () => {
+    const canvas = canvasRef.current;
+    if (!canvas || !guessResult) return;
+    setIsSharing(true);
+    try {
+      const blob = await canvasWithGuessToPng(canvas, guessResult);
+      await shareImage(blob, 'my-drawing-guess.png', '灵魂画师', 'AI 猜猜我画了什么？');
     } catch (e) {
       console.error('Share failed:', e);
     } finally {
@@ -497,26 +511,6 @@ export default function App() {
               </div>
             )}
 
-            {/* AI Guess Result */}
-            {guessResult && (
-              <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 bg-white/95 backdrop-blur-sm px-4 py-3 rounded-2xl shadow-lg border border-[#305066]/10 animate-pop-in w-[90%] max-w-xs">
-                <div className="flex items-start gap-2.5">
-                  <div className="bg-[#0ea8e3]/10 text-[#0ea8e3] p-1.5 rounded-xl flex-shrink-0">
-                    <Sparkles size={18} />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-black text-xs mb-0.5 text-[#0ea8e3]">AI 猜你画的是：</h4>
-                    <p className="text-sm font-bold text-[#305066] leading-relaxed">{guessResult}</p>
-                  </div>
-                  <button
-                    onClick={() => setGuessResult(null)}
-                    className="text-[#305066]/30 hover:text-[#db6968] flex-shrink-0 -mt-0.5 -mr-0.5 p-1 text-lg leading-none"
-                  >
-                    &times;
-                  </button>
-                </div>
-              </div>
-            )}
 
             <canvas
               ref={canvasRef}
@@ -529,7 +523,37 @@ export default function App() {
             />
           </div>
 
-          {/* Toolbar */}
+          {/* Toolbar / Guess Result Card */}
+          {guessResult ? (
+            <div className="w-full mt-4 bg-white/90 backdrop-blur-sm rounded-2xl border border-[#305066]/10 p-4 shadow-md animate-pop-in">
+              <div className="flex items-start gap-2.5 mb-4">
+                <div className="bg-[#0ea8e3]/10 text-[#0ea8e3] p-1.5 rounded-xl flex-shrink-0">
+                  <Sparkles size={18} />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-black text-xs mb-0.5 text-[#0ea8e3]">AI 猜你画的是：</h4>
+                  <p className="text-sm font-bold text-[#305066] leading-relaxed">{guessResult}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleShareDrawWithGuess}
+                  disabled={isSharing}
+                  className="flex items-center gap-2 bg-[#0ea8e3] text-white px-5 py-2.5 rounded-full font-bold text-sm shadow-md shadow-[#0ea8e3]/25 active:scale-95 transition-all disabled:opacity-40"
+                >
+                  {isSharing ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />}
+                  <span>分享画作</span>
+                </button>
+                <button
+                  onClick={() => setGuessResult(null)}
+                  className="flex items-center gap-2 bg-white/80 text-[#305066] border-2 border-[#305066]/15 px-5 py-2.5 rounded-full font-bold text-sm active:scale-95 transition-all shadow-sm"
+                >
+                  <Pencil size={16} />
+                  <span>继续画</span>
+                </button>
+              </div>
+            </div>
+          ) : (
           <div className="w-full mt-4 bg-white/90 backdrop-blur-sm rounded-2xl border border-[#305066]/10 p-3.5 shadow-md flex flex-col gap-3">
             {/* Colors */}
             <div className="flex items-center justify-between gap-2 overflow-x-auto hide-scrollbar">
@@ -580,6 +604,7 @@ export default function App() {
               </div>
             </div>
           </div>
+          )}
         </div>
 
       </div>
