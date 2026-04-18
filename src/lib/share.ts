@@ -1,3 +1,5 @@
+import qrCodeUrl from '../qrcode.png';
+
 const BRAND_HEIGHT = 80;
 const BRAND_BG = '#f2e2c4';
 const BRAND_COLOR = '#305066';
@@ -148,7 +150,7 @@ export async function canvasWithGuessToPng(
   const bodyLineHeight = 1.7;
   const gapTitleBody = 14;
   const gapArtComment = 28;
-  const brandH = 80;
+  const brandH = 110;
   const gapCommentBrand = 36;
 
   const measure = document.createElement('canvas').getContext('2d')!;
@@ -251,16 +253,28 @@ export async function canvasWithGuessToPng(
   }
 
   const brandCenterY = totalH - pad - brandH / 2;
+
+  const qrSize = 80;
+  const qrImg = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('QR load failed'));
+    img.src = qrCodeUrl;
+  });
+
+  const qrX = W - pad - qrSize;
+  const qrY = brandCenterY - qrSize / 2;
+  ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+
   ctx.fillStyle = '#305066';
   ctx.font = `800 ${Math.round(W * 0.028)}px system-ui, -apple-system, sans-serif`;
   ctx.textBaseline = 'middle';
-  ctx.textAlign = 'center';
-  ctx.fillText('\u7075\u9b42\u753b\u5e08 Soul Painter', W / 2, brandCenterY - 12);
+  ctx.textAlign = 'left';
+  ctx.fillText('\u7075\u9b42\u753b\u5e08 Soul Painter', pad, brandCenterY - 10);
 
   ctx.fillStyle = 'rgba(48,80,102,0.45)';
   ctx.font = `500 ${Math.round(W * 0.022)}px system-ui, -apple-system, sans-serif`;
-  ctx.fillText('paint.uulili.com', W / 2, brandCenterY + 18);
-  ctx.textAlign = 'start';
+  ctx.fillText('paint.uulili.com', pad, brandCenterY + 18);
 
   return new Promise((resolve, reject) => {
     canvas.toBlob(
